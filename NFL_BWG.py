@@ -12,14 +12,14 @@ from darksky.types import weather
 import nflgame
 
 
-class BadWeatherGames():
+class BadWeatherGames(DS_api):
     """This is a class to lookup weather for upcoming NFL games, and report to
     the user"""
 
     # The Games are reported in EST, so we set up an EST timezone class
     est = timezone(-timedelta(hours=5), name='EST')
 
-    DSapi_key = '47c0f4788ab0dbea70aa313105ba53b5'
+    DSapi_key = DS_api
     nfl_teams = [team[0] for team in nflgame.teams]
     nfl_lat = [33.52713000000,
                33.75735000000,
