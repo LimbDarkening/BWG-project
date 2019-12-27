@@ -134,7 +134,10 @@ class BadWeatherGames():
                             )
 
         keys = ['Away', 'Home', 'Gametime']
-        vals = [sch['away'], sch['home'], self.est_to_utc(gametime)]
+        vals = [nflgame.standard_team(sch['away']),
+                nflgame.standard_team(sch['home']),
+                self.est_to_utc(gametime)
+                ]
         _dict = dict(zip(keys, vals))
 
         return _dict
