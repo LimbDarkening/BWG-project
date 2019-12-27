@@ -5,21 +5,24 @@ date in future versions, and determines if the game will be subject to
 The class is dependant upon nflgame and DarSky API's for schedule and
 weather data respectively.
 """
-
+import json
 from datetime import datetime, timezone, timedelta
 from darksky.api import DarkSky
 from darksky.types import weather
 import nflgame
 
-
-class BadWeatherGames(DS_api):
+class BadWeatherGames():
     """This is a class to lookup weather for upcoming NFL games, and report to
     the user"""
 
     # The Games are reported in EST, so we set up an EST timezone class
+
+    with open('Api_keys.json') as key:
+        DSapi_key = json.load(key)['DS_api']
+
+
     est = timezone(-timedelta(hours=5), name='EST')
 
-    DSapi_key = DS_api
     nfl_teams = [team[0] for team in nflgame.teams]
     nfl_lat = [33.52713000000,
                33.75735000000,
