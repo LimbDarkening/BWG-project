@@ -7,8 +7,10 @@ weather data respectively.
 """
 import json
 from datetime import datetime, timezone, timedelta
+from dateutil import tz
 from darksky.api import DarkSky
 from darksky.types import weather
+
 import nflgame
 
 class BadWeatherGames():
@@ -16,12 +18,11 @@ class BadWeatherGames():
     the user"""
 
     # The Games are reported in EST, so we set up an EST timezone class
-
+    est =  tz.gettz('America/New_York')
+    local_tz = tz.tzlocal()
+    
     with open('Api_keys.json') as key:
         DSapi_key = json.load(key)['DS_api']
-
-
-    est = timezone(-timedelta(hours=5), name='EST')
 
     nfl_teams = [team[0] for team in nflgame.teams]
     nfl_lat = [33.52713000000,
@@ -106,11 +107,6 @@ class BadWeatherGames():
         self.snow_games = self.check_for_snow_games()
 
     @staticmethod
-    def est_to_utc(est_dt):
-        """ Converts EST to UTC via dt.astimezone"""
-        return est_dt.astimezone(tz=timezone.utc)
-
-    @staticmethod
     def nfl_week():
         """This function wraps nflgame live calls for the year, week and phase
         into one call."""
@@ -121,22 +117,22 @@ class BadWeatherGames():
 
     def game_format(self, game):
         """Used to extract pertenant info from nflgame class, and format date"""
-
-        sch = game.schedule
         # Parses usefull data from nflgame instance
-        # When will Americans adopt 24h clocks?
+        sch = game.schedule
+        
+        
         gametime = datetime(year=sch['year'],
                             month=sch['month'],
                             day=sch['day'],
                             hour=12 + int(sch['time'].split(':')[0]),
                             minute=int(sch['time'].split(':')[1]),
-                            tzinfo=BadWeatherGames.est
                             )
-
+        gametime = gametime.replace(tzinfo=self.est)
+        
         keys = ['Away', 'Home', 'Gametime']
         vals = [nflgame.standard_team(sch['away']),
                 nflgame.standard_team(sch['home']),
-                self.est_to_utc(gametime)
+                gametime
                 ]
         _dict = dict(zip(keys, vals))
 
@@ -183,7 +179,7 @@ class BadWeatherGames():
 
         forecast = d_s.get_time_machine_forecast(_lat, _long, _time,
                                                  exclude=ex_list,
-                                                 timezone='UTC'
+                                                 timezone='America/New_York'
                                                  )
 
         c_game['Precip_prob'] = forecast.currently.precip_probability
@@ -203,6 +199,7 @@ class BadWeatherGames():
             inforamtion.
 
         """
+        
         cw_games = map(self.get_weather, self.games)
         snow_games = [cw_game for cw_game in cw_games if
                       cw_game['Precip_type'] == 'snow']
@@ -215,23 +212,25 @@ class BadWeatherGames():
                 prob = cws_game['Precip_prob']
                 away = cws_game['Away']
                 home = cws_game['Home']
-                _datetime = cws_game['Gametime'].strftime('%d/%m/%Y, %H:%M')
+                _datetime = cws_game['Gametime'].astimezone(self.local_tz)
+                date_string = _datetime.strftime('%d/%m/%Y, %H:%M')
                 accu = cws_game['Precip_accum']
+                dash = 90
 
                 Y = f"""
-                {'-'*60}
-                There's a probability of {prob*100}% that snow will fall during the {away} @ {home} game at {_datetime} UTC.
-                The snow depth could be upto {accu} Cm deep.
+                {'-'*dash}
+                There's a probability of {prob*100} % that snow will fall during the {away} @ {home} game at {date_string} Local time.
+                The snow depth could be upto {accu} Inches deep.
 
-                {'-'*60}
+                {'-'*dash}
                 """
                 print(Y)
 
         else:
             N = f"""
-            {'-'*60}
+            {'-'*dash}
             Snow is currently not predicted to fall at any NFL games this week.
-            {'-'*60}
+            {'-'*dash}
             """
             print(N)
 
