@@ -20,7 +20,7 @@ class BadWeatherGames():
     # The Games are reported in EST, so we set up an EST timezone class
     est =  tz.gettz('America/New_York')
     local_tz = tz.tzlocal()
-    
+
     with open('Api_keys.json') as key:
         DSapi_key = json.load(key)['DS_api']
 
@@ -114,13 +114,24 @@ class BadWeatherGames():
         year, week = nflgame.live.current_year_and_week()
         phase = nflgame.live.current_season_phase()
         return [year, week, phase]
-
+    
+    def _valid(self, game):
+        """Checks that the game is in the future and not in a dome."""
+        
+        future = datetime.now().astimezone(self.est) < game['Gametime']
+        domes = ['DAL', 'DET', 'IND', 'NO',
+                 'ATL', 'HOU', 'ARI', 'MIN'
+                 ]
+        in_dome = any([game['Home'] == dome for dome in domes])
+        
+        return (future and not(in_dome))
+    
     def game_format(self, game):
         """Used to extract pertenant info from nflgame class, and format date"""
         # Parses usefull data from nflgame instance
         sch = game.schedule
-        
-        
+
+
         gametime = datetime(year=sch['year'],
                             month=sch['month'],
                             day=sch['day'],
@@ -128,7 +139,7 @@ class BadWeatherGames():
                             minute=int(sch['time'].split(':')[1]),
                             )
         gametime = gametime.replace(tzinfo=self.est)
-        
+
         keys = ['Away', 'Home', 'Gametime']
         vals = [nflgame.standard_team(sch['away']),
                 nflgame.standard_team(sch['home']),
@@ -150,10 +161,11 @@ class BadWeatherGames():
                                   week=self.y_w_p[1],
                                   kind=self.y_w_p[2]
                                   )
-
+        
         clean_games = map(self.game_format, raw_games)
-
-        return clean_games
+        valid_games = filter(self._valid, clean_games)
+        
+        return valid_games
 
     def get_weather(self, c_game):
         """
@@ -199,7 +211,7 @@ class BadWeatherGames():
             inforamtion.
 
         """
-        
+
         cw_games = map(self.get_weather, self.games)
         snow_games = [cw_game for cw_game in cw_games if
                       cw_game['Precip_type'] == 'snow']
